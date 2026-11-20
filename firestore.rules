@@ -1,0 +1,246 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'leu.lay@fellow.passerellesnumeriques.org' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUserPublic(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'registrationCompleted', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'role', 'registrationCompleted', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.role is string && data.role in ['client', 'admin']
+        && data.registrationCompleted is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'phone', 'defaultAddress', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'phone', 'defaultAddress', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.phone is string && data.phone.size() <= 40
+        && data.defaultAddress is string && data.defaultAddress.size() <= 300
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminMember(data, adminUid) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'createdAt'])
+        && data.uid is string && data.uid == adminUid && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMenuItem(data, itemId) {
+      return data.keys().hasAll(['id', 'name', 'category', 'description', 'basePrice', 'calories', 'prepMinutes', 'image', 'available', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'name', 'category', 'description', 'basePrice', 'calories', 'prepMinutes', 'image', 'available', 'spicy', 'vegetarian', 'comboEligible', 'featuredTag', 'updatedAt'])
+        && data.id is string && data.id == itemId && isValidId(data.id)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.category is string && data.category in ['Smash Burgers', 'Crispy Chicken', 'Sides', 'Shakes', 'Combos']
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 600
+        && data.basePrice is number && data.basePrice > 0 && data.basePrice <= 500
+        && data.calories is number && data.calories >= 0 && data.calories <= 5000
+        && data.prepMinutes is number && data.prepMinutes >= 1 && data.prepMinutes <= 120
+        && data.image is string && data.image.size() >= 1 && data.image.size() <= 500
+        && data.available is bool
+        && (!('spicy' in data) || data.spicy is bool)
+        && (!('vegetarian' in data) || data.vegetarian is bool)
+        && (!('comboEligible' in data) || data.comboEligible is bool)
+        && (!('featuredTag' in data) || (data.featuredTag is string && data.featuredTag.size() <= 60))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data, orderId) {
+      return data.keys().hasAll([
+          'id', 'customerUid', 'customerName', 'customerPhone',
+          'fulfillment', 'storeId', 'storeName', 'paymentMethod',
+          'itemSummaries', 'subtotal', 'discount', 'deliveryFee',
+          'tax', 'total', 'stage', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'customerUid', 'customerName', 'customerPhone', 'deliveryAddress',
+          'fulfillment', 'storeId', 'storeName', 'paymentMethod',
+          'itemSummaries', 'subtotal', 'discount', 'deliveryFee',
+          'tax', 'total', 'stage', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == orderId && isValidId(data.id)
+        && data.customerUid is string && isValidId(data.customerUid)
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && data.customerPhone is string && data.customerPhone.size() >= 5 && data.customerPhone.size() <= 40
+        && (!('deliveryAddress' in data) || (data.deliveryAddress is string && data.deliveryAddress.size() <= 300))
+        && data.fulfillment is string && data.fulfillment in ['pickup', 'delivery']
+        && data.storeId is string && data.storeId.size() >= 1 && data.storeId.size() <= 64
+        && data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 120
+        && data.paymentMethod is string && data.paymentMethod in ['card', 'apple_pay', 'cod']
+        && data.itemSummaries is list && data.itemSummaries.size() >= 1 && data.itemSummaries.size() <= 30
+        && data.itemSummaries[0] is string && data.itemSummaries[0].size() <= 300
+        && data.subtotal is number && data.subtotal >= 0 && data.subtotal <= 10000
+        && data.discount is number && data.discount >= 0 && data.discount <= 10000
+        && data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 100
+        && data.tax is number && data.tax >= 0 && data.tax <= 2000
+        && data.total is number && data.total >= 0 && data.total <= 12000
+        && data.stage is string && data.stage in ['received', 'grilling', 'packing', 'ready']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Public user profile & registration status
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && isOwner(userId)
+        && isValidUserPublic(incoming(), userId)
+        && (incoming().role == 'client' || isAdmin())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && isValidUserPublic(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            isOwner(userId)
+            && incoming().role == existing().role
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'registrationCompleted', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+
+      // Private PII subcollection
+      match /private/info {
+        allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow list: if false;
+
+        allow create: if isValidId(userId)
+          && isVerifiedUser()
+          && isOwner(userId)
+          && isValidUserPrivate(incoming(), userId)
+          && incoming().updatedAt == request.time;
+
+        allow update: if isValidId(userId)
+          && isVerifiedUser()
+          && (isOwner(userId) || isAdmin())
+          && isValidUserPrivate(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phone', 'defaultAddress', 'updatedAt']);
+
+        allow delete: if false;
+      }
+    }
+
+    // Explicit admin allowlist
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(adminUid)
+        && isAdmin()
+        && isValidAdminMember(incoming(), adminUid)
+        && incoming().createdAt == request.time;
+
+      allow update: if isValidId(adminUid)
+        && isAdmin()
+        && isValidAdminMember(incoming(), adminUid)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt;
+
+      allow delete: if isValidId(adminUid) && isAdmin();
+    }
+
+    // Menu catalog (publicly browsable, admin managed)
+    match /menuItems/{itemId} {
+      allow get: if isValidId(itemId);
+      allow list: if true;
+
+      allow create: if isValidId(itemId)
+        && isAdmin()
+        && isValidMenuItem(incoming(), itemId)
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(itemId)
+        && isAdmin()
+        && isValidMenuItem(incoming(), itemId)
+        && incoming().id == existing().id
+        && incoming().updatedAt == request.time;
+
+      allow delete: if isValidId(itemId) && isAdmin();
+    }
+
+    // Customer orders (owner or admin read, client create, admin stage transition)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (existing().customerUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().customerUid == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(orderId)
+        && isVerifiedUser()
+        && isValidOrder(incoming(), orderId)
+        && incoming().customerUid == request.auth.uid
+        && incoming().stage == 'received'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(orderId)
+        && isAdmin()
+        && isValidOrder(incoming(), orderId)
+        && incoming().id == existing().id
+        && incoming().customerUid == existing().customerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().total == existing().total
+        && incoming().updatedAt == request.time
+        && existing().stage != 'ready'
+        && incoming().diff(existing()).affectedKeys().hasOnly(['stage', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    // Connection validation probe doc (read-only ping)
+    match /test/connection {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+  }
+}

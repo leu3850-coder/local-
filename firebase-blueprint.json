@@ -1,0 +1,260 @@
+{
+  "entities": {
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Public user profile and non-sensitive role metadata.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["client", "admin"]
+        },
+        "registrationCompleted": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "role", "registrationCompleted", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Private PII for a registered user (email, phone, default delivery address).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 40
+        },
+        "defaultAddress": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "phone", "defaultAddress", "updatedAt"]
+    },
+    "AdminMember": {
+      "title": "AdminMember",
+      "description": "Explicit admin allowlist entry keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "MenuItemRecord": {
+      "title": "MenuItemRecord",
+      "description": "Fast-food menu item managed by admins and browsed by clients.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Smash Burgers", "Crispy Chicken", "Sides", "Shakes", "Combos"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "basePrice": {
+          "type": "number"
+        },
+        "calories": {
+          "type": "number"
+        },
+        "prepMinutes": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "spicy": {
+          "type": "boolean"
+        },
+        "vegetarian": {
+          "type": "boolean"
+        },
+        "comboEligible": {
+          "type": "boolean"
+        },
+        "featuredTag": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "category", "description", "basePrice", "calories", "prepMinutes", "image", "available", "updatedAt"]
+    },
+    "OrderRecord": {
+      "title": "OrderRecord",
+      "description": "Customer fast-food order with itemized snapshot and live kitchen stage.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "customerPhone": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 40
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "fulfillment": {
+          "type": "string",
+          "enum": ["pickup", "delivery"]
+        },
+        "storeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "storeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["card", "apple_pay", "cod"]
+        },
+        "itemSummaries": {
+          "type": "array"
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "discount": {
+          "type": "number"
+        },
+        "deliveryFee": {
+          "type": "number"
+        },
+        "tax": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        },
+        "stage": {
+          "type": "string",
+          "enum": ["received", "grilling", "packing", "ready"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "customerUid", "customerName", "customerPhone", "fulfillment", "storeId", "storeName", "paymentMethod", "itemSummaries", "subtotal", "discount", "deliveryFee", "tax", "total", "stage", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Public profile and registration state for each user."
+    },
+    "/users/{userId}/private/info": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Private PII (email, phone, delivery address) accessible only to the owner or admin."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminMember" },
+      "description": "Admin role allowlist documents."
+    },
+    "/menuItems/{itemId}": {
+      "schema": { "$ref": "#/entities/MenuItemRecord" },
+      "description": "Fast-food menu items readable by all visitors and managed by admins."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/OrderRecord" },
+      "description": "Customer orders readable by owner or admin, created by authenticated clients, stage updated by admins."
+    }
+  }
+}
